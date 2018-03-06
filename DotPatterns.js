@@ -8,9 +8,9 @@ $(document).ready(function() {
     var count = 0;
     
     var maxSpeed = 4;
-    var directionSwitchChance = 0.1;
+    var directionSwitchChance = 0.02;
     var dotSize = 1;
-		var numDots = 500;
+		var numDots = 10;
     var theDots = [];
     
     for (var i = 0; i < numDots; i++) {
@@ -36,6 +36,8 @@ $(document).ready(function() {
         for (var i = 0; i < numDots; i++) {
         	var dotToDraw = theDots[i];
           
+          dotToDraw.prevX = dotToDraw.x;
+          dotToDraw.prevY = dotToDraw.y;
           dotToDraw.x = dotToDraw.x + dotToDraw.xVelocity;
           dotToDraw.y = dotToDraw.y + dotToDraw.yVelocity;
           
@@ -45,8 +47,13 @@ $(document).ready(function() {
           	newDirectionAndSpeed(dotToDraw);
           }
           
-        	context.fillStyle = 'rgb(' + dotToDraw.r + ',' + dotToDraw.g + ',' + dotToDraw.b + ')';
-        	context.fillRect(dotToDraw.x, dotToDraw.y, dotSize, dotSize);
+        	// context.fillStyle = 'rgb(' + dotToDraw.r + ',' + dotToDraw.g + ',' + dotToDraw.b + ')';
+          // context.fillRect(dotToDraw.x, dotToDraw.y, dotSize, dotSize);
+          context.strokeStyle = 'rgb(' + dotToDraw.r + ',' + dotToDraw.g + ',' + dotToDraw.b + ')';
+          context.beginPath();
+          context.moveTo(dotToDraw.prevX, dotToDraw.prevY);
+          context.lineTo(dotToDraw.x, dotToDraw.y);
+          context.stroke();
           
         }
         
