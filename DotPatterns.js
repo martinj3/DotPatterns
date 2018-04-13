@@ -4,25 +4,32 @@ $(document).ready(function() {
   
     //var ballon = document.getElementById('ballon')
   	//context.drawImage(background, 0, 0);
+  	  // context.fillStyle = 'rgb(' + dotToDraw.r + ',' + dotToDraw.g + ',' + dotToDraw.b + ')';
+          // context.fillRect(dotToDraw.x, dotToDraw.y, dotSize, dotSize);
     
     var count = 0;
     
+    var initSpeed = 3;
     var maxSpeed = 4;
-    var directionSwitchChance = 0.02;
+    var speedDriftRate = 0.15;
+    var maxTurnRate = 0.1;
+    var turnRateDriftRate = 0.06;
+    var maxLineWidth = 8;
+    var lineWidthDriftRate = 0.4;
     var dotSize = 1;
-		var numDots = 10;
+		var numDots = 30;
     var theDots = [];
     
     for (var i = 0; i < numDots; i++) {
-    	var newDot = {};
-      newDot.x = Math.floor(Math.random() * canvas.width);
-      newDot.y = Math.floor(Math.random() * canvas.height);
-      newDirectionAndSpeed(newDot);
-      
+      var x = Math.floor(Math.random() * canvas.width);
+      var y = Math.floor(Math.random() * canvas.height);
+      var initDirection = Math.random() * 2 * Math.PI;
+      var initTurnRate = (Math.random() -0.5) * 2 * maxTurnRate;
+      var initLineWidth = Math.random() * maxLineWidth;
       var hue = Math.floor(Math.random() * 360);
-      var rgb = hsvToRgb(hue, 255, 255);
-      newDot.r = rgb.r;  newDot.g = rgb.g;  newDot.b = rgb.b;
       
+      var newDot = new MovingDot(x,y,initDirection,initTurnRate,initSpeed, initLineWidth, hue);
+         
       theDots.push(newDot);
     }
 
@@ -36,26 +43,13 @@ $(document).ready(function() {
         for (var i = 0; i < numDots; i++) {
         	var dotToDraw = theDots[i];
           
-          dotToDraw.prevX = dotToDraw.x;
-          dotToDraw.prevY = dotToDraw.y;
-          dotToDraw.x = dotToDraw.x + dotToDraw.xVelocity;
-          dotToDraw.y = dotToDraw.y + dotToDraw.yVelocity;
+          dotToDraw.update();
           
-          checkInBounds(dotToDraw);
-          
-          if (Math.random() <= directionSwitchChance) {
-          	newDirectionAndSpeed(dotToDraw);
-          }
-          
-        	// context.fillStyle = 'rgb(' + dotToDraw.r + ',' + dotToDraw.g + ',' + dotToDraw.b + ')';
-          // context.fillRect(dotToDraw.x, dotToDraw.y, dotSize, dotSize);
-          context.strokeStyle = 'rgb(' + dotToDraw.r + ',' + dotToDraw.g + ',' + dotToDraw.b + ')';
-          context.beginPath();
-          context.moveTo(dotToDraw.prevX, dotToDraw.prevY);
-          context.lineTo(dotToDraw.x, dotToDraw.y);
-          context.stroke();
-          
+          dotToDraw.draw(context);
+
+
         }
+        
         
         count = count + 1;
         if (count > 30000) {
@@ -63,6 +57,43 @@ $(document).ready(function() {
         }
     }
     
+    
+    function MovingDot(xp, yp, dir, tr, spd, lw, hue) {
+    			this.x = xp;
+          this.y = yp;
+          this.direction = dir;
+          this.turnRate = tr;
+          this.speed = spd
+          this.lineWidth = lw;
+    	  var rgb = hsvToRgb(hue, 255, 255);
+       this.r = rgb.r;  this.g = rgb.g;  this.b = rgb.b;
+    	  
+    	  this.update = function() {
+    	  	this.prevX = this.x;
+          this.prevY = this.y;
+          this.turnRate = this.turnRate + (Math.random() - 0.5) * turnRateDriftRate;
+          //this.speed = this.speed + (Math.random() - 0.5) * speedDriftRate;
+          this.lineWidth = this.lineWidth + (Math.random() - 0.51) * lineWidthDriftRate;
+          checkInBounds(this);
+          this.direction = this.direction + this.turnRate;
+          var xVelocity = this.speed * Math.cos(this.direction);
+          var yVelocity = this.speed * Math.sin(this.direction);
+          this.x = this.x + xVelocity;
+          this.y = this.y + yVelocity;
+    	  }
+          
+       this.draw = function(context) {
+       		context.beginPath();
+          context.strokeStyle = 'rgb(' + this.r + ',' + this.g + ',' + this.b + ')';
+          context.lineWidth = this.lineWidth;
+          
+          context.moveTo(this.prevX, this.prevY);
+          context.lineTo(this.x, this.y);
+          
+          context.stroke();
+       }
+          
+    }
     
     
     function newDirectionAndSpeed(dot) {
@@ -74,21 +105,33 @@ $(document).ready(function() {
     
     
     function checkInBounds(dot) {
+      if (Math.abs(dot.turnRate) > maxTurnRate) {
+        dot.turnRate = maxTurnRate * Math.sign(dot.turnRate);
+      }
+      if (Math.abs(dot.speed) > maxSpeed) {
+        dot.speed = maxSpeed * Math.sign(dot.speed);
+      }
+      if (dot.lineWidth > maxLineWidth) {
+        dot.lineWidth = maxLineWidth;
+      }
+      if (dot.lineWidth < 1) {
+        dot.lineWidth = 1;
+      }
     	if (dot.x < 0) {
-      	dot.x = dot.x + maxSpeed;
-       	dot.xVelocity = -dot.xVelocity;
+        dot.prevX = canvas.width;
+      	dot.x = canvas.width;
       }
       if (dot.y < 0) {
-      	dot.y = dot.y + maxSpeed;
-       	dot.yVelocity = -dot.yVelocity;
+        dot.prevY = canvas.height;
+      	dot.y = canvas.height;
       }
       if (dot.x > canvas.width) {
-      	dot.x = dot.x - maxSpeed;
-        dot.xVelocity = -dot.xVelocity;
+        dot.prevX = 0;
+      	dot.x = 0;
       }
       if (dot.y > canvas.height) {
-      	dot.y = dot.y - maxSpeed;
-        dot.yVelocity = -dot.yVelocity;
+        dot.prevY = 0
+      	dot.y = 0;
       }
     }
     
